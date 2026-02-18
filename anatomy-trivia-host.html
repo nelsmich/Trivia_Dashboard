@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy Trivia – Host</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1e2a3a;
+    --accent: #00e5ff;
+    --accent2: #ff4081;
+    --accent3: #69ff47;
+    --text: #f0f4ff;
+    --muted: #8899aa;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  h1, h2, h3 { font-family: 'Syne', sans-serif; }
+
+  /* ── Lobby ── */
+  #lobby {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; gap: 32px; padding: 40px;
+    background: radial-gradient(ellipse at 30% 20%, #0d2137 0%, var(--bg) 60%);
+  }
+  .game-title {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 800;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .join-box {
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 40px 60px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(0,229,255,0.15);
+  }
+  .join-label { font-size: 1.1rem; color: var(--muted); margin-bottom: 8px; }
+  .game-code {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(3rem, 10vw, 5rem);
+    font-weight: 800;
+    letter-spacing: 10px;
+    color: var(--accent);
+  }
+  .join-url { font-size: 1.1rem; color: var(--muted); margin-top: 8px; }
+  .join-url span { color: var(--text); font-weight: 600; }
+
+  .players-grid {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    max-width: 900px;
+  }
+  .player-chip {
+    background: var(--surface2);
+    border: 1.5px solid var(--surface2);
+    border-radius: 40px;
+    padding: 8px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    animation: popIn 0.3s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+
+  .btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 40px;
+    padding: 16px 48px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn:hover { transform: scale(1.04); box-shadow: 0 0 30px rgba(0,229,255,0.4); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── Question Screen ── */
+  #question-screen {
+    display: none; flex-direction: column;
+    min-height: 100vh; padding: 40px;
+    background: radial-gradient(ellipse at 70% 80%, #1a0d2e 0%, var(--bg) 60%);
+  }
+  .q-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 32px;
+  }
+  .q-counter { font-size: 1rem; color: var(--muted); }
+  .timer-ring {
+    width: 80px; height: 80px;
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  .timer-ring svg { position: absolute; top:0; left:0; transform: rotate(-90deg); }
+  .timer-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem; font-weight: 800; color: var(--accent);
+    position: relative;
+  }
+  #timer-circle {
+    stroke-dasharray: 220;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 1s;
+  }
+  .q-text {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.5rem, 4vw, 2.8rem);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    line-height: 1.25;
+  }
+  .answers-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; max-width: 900px; margin: 0 auto; width: 100%;
+  }
+  .answer-btn {
+    padding: 24px 20px;
+    border-radius: var(--radius);
+    border: 2px solid transparent;
+    font-size: 1.15rem; font-weight: 600;
+    text-align: left;
+    cursor: default;
+    position: relative;
+    transition: all .3s;
+  }
+  .answer-btn.A { background: rgba(255,64,129,0.15); border-color: #ff4081; }
+  .answer-btn.B { background: rgba(0,229,255,0.12); border-color: #00e5ff; }
+  .answer-btn.C { background: rgba(105,255,71,0.12); border-color: #69ff47; }
+  .answer-btn.D { background: rgba(167,139,250,0.12); border-color: #a78bfa; }
+  .answer-btn .letter {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem; font-weight: 800;
+    margin-right: 12px;
+    opacity: 0.8;
+  }
+  .answer-btn.correct { background: rgba(105,255,71,0.3) !important; border-color: #69ff47 !important; box-shadow: 0 0 30px rgba(105,255,71,0.3); }
+  .answer-btn.wrong { opacity: 0.35; }
+  .answer-count {
+    position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem; font-weight: 800; color: rgba(255,255,255,0.5);
+  }
+
+  /* ── Leaderboard ── */
+  #leaderboard-screen {
+    display: none; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 40px;
+    background: radial-gradient(ellipse at 50% 0%, #1a2e0d 0%, var(--bg) 60%);
+  }
+  .lb-title {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 800;
+    color: var(--accent3);
+    margin-bottom: 40px;
+  }
+  .lb-list { width: 100%; max-width: 700px; display: flex; flex-direction: column; gap: 12px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 20px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    border-left: 4px solid var(--muted);
+    animation: slideIn .4s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .lb-row:nth-child(1) { border-left-color: #ffd700; }
+  .lb-row:nth-child(2) { border-left-color: #c0c0c0; }
+  .lb-row:nth-child(3) { border-left-color: #cd7f32; }
+  @keyframes slideIn { from{transform:translateX(-40px);opacity:0} to{transform:translateX(0);opacity:1} }
+  .lb-rank {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem; font-weight: 800;
+    width: 36px; text-align: center;
+    color: var(--muted);
+  }
+  .lb-row:nth-child(1) .lb-rank { color: #ffd700; }
+  .lb-row:nth-child(2) .lb-rank { color: #c0c0c0; }
+  .lb-row:nth-child(3) .lb-rank { color: #cd7f32; }
+  .lb-name { flex: 1; font-size: 1.2rem; font-weight: 600; }
+  .lb-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem; font-weight: 800; color: var(--accent);
+  }
+  .lb-delta { font-size: 0.9rem; color: var(--accent3); font-weight: 600; margin-left: 8px; }
+
+  /* ── Game Over ── */
+  #gameover-screen {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 40px; text-align: center; gap: 24px;
+  }
+  .confetti { font-size: 4rem; animation: bounce 1s infinite; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
+  .winner-name {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 8vw, 5rem);
+    font-weight: 800;
+    color: #ffd700;
+  }
+
+  .waiting-msg { color: var(--muted); font-size: 1.1rem; }
+  .players-count { font-size: 1.1rem; color: var(--muted); }
+  .players-count span { color: var(--accent); font-weight: 700; }
+
+  #response-bar-wrap {
+    width: 100%; max-width: 600px; margin: 16px auto;
+    background: var(--surface); border-radius: 40px; overflow: hidden; height: 18px;
+  }
+  #response-bar {
+    height: 100%; background: var(--accent); border-radius: 40px;
+    transition: width 0.5s;
+  }
+  #response-label { text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <div class="game-title">🫀 Anatomy Trivia</div>
+  <div class="join-box">
+    <div class="join-label">Players join at:</div>
+    <div class="join-url"><span id="join-url-display">Open player.html</span></div>
+    <div class="join-label" style="margin-top:16px">Game Code:</div>
+    <div class="game-code" id="code-display">—</div>
+  </div>
+  <div class="players-count">Players joined: <span id="player-count">0</span></div>
+  <div class="players-grid" id="players-grid"></div>
+  <button class="btn" id="start-btn" disabled>Start Game</button>
+  <div class="waiting-msg" id="waiting-msg">Waiting for players to join…</div>
+</div>
+
+<!-- QUESTION -->
+<div id="question-screen">
+  <div class="q-header">
+    <div class="q-counter" id="q-counter">Question 1 / 10</div>
+    <div class="timer-ring">
+      <svg width="80" height="80">
+        <circle cx="40" cy="40" r="35" fill="none" stroke="#1e2a3a" stroke-width="8"/>
+        <circle id="timer-circle" cx="40" cy="40" r="35" fill="none" stroke="#00e5ff" stroke-width="8"/>
+      </svg>
+      <div class="timer-num" id="timer-num">20</div>
+    </div>
+  </div>
+  <div class="q-text" id="q-text"></div>
+  <div class="answers-grid" id="answers-grid"></div>
+  <div id="response-bar-wrap"><div id="response-bar" style="width:0%"></div></div>
+  <div id="response-label">0 / 0 answered</div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="leaderboard-screen">
+  <div class="lb-title">📊 Leaderboard</div>
+  <div class="lb-list" id="lb-list"></div>
+  <button class="btn" id="next-btn" style="margin-top:32px">Next Question →</button>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover-screen">
+  <div class="confetti">🏆</div>
+  <div style="color:var(--muted);font-size:1.2rem;font-family:'Syne',sans-serif">WINNER</div>
+  <div class="winner-name" id="winner-name"></div>
+  <div class="lb-list" id="final-lb" style="max-width:700px;width:100%"></div>
+  <button class="btn" id="restart-btn" style="margin-top:32px">Play Again</button>
+</div>
+
+<script>
+// ── Data ──
+const QUESTIONS = [
+  { q: "What is the largest organ in the human body?", a: ["Skin","Liver","Brain","Heart"], correct: 0 },
+  { q: "How many bones does an adult human body have?", a: ["206","198","212","225"], correct: 0 },
+  { q: "Which chamber of the heart pumps blood to the body?", a: ["Left atrium","Right atrium","Right ventricle","Left ventricle"], correct: 3 },
+  { q: "What is the medical term for the kneecap?", a: ["Fibula","Patella","Tibia","Tarsus"], correct: 1 },
+  { q: "Where does gas exchange occur in the lungs?", a: ["Bronchioles","Trachea","Alveoli","Pleura"], correct: 2 },
+  { q: "Which organ produces insulin?", a: ["Liver","Kidney","Pancreas","Spleen"], correct: 2 },
+  { q: "What type of joint is the shoulder?", a: ["Hinge","Pivot","Gliding","Ball and socket"], correct: 3 },
+  { q: "The sinoatrial node controls what function?", a: ["Breathing rate","Heart rate","Digestion","Reflexes"], correct: 1 },
+  { q: "Which part of the brain controls balance and coordination?", a: ["Cerebrum","Medulla","Cerebellum","Thalamus"], correct: 2 },
+  { q: "What is the name of the fluid that surrounds the brain and spinal cord?", a: ["Synovial fluid","Cerebrospinal fluid","Lymph","Plasma"], correct: 1 },
+  { q: "How many pairs of ribs does the human body have?", a: ["10","11","12","13"], correct: 2 },
+  { q: "Which blood vessel carries oxygenated blood from the heart?", a: ["Pulmonary vein","Vena cava","Aorta","Pulmonary artery"], correct: 2 },
+  { q: "The largest nerve in the human body is the:", a: ["Femoral nerve","Sciatic nerve","Ulnar nerve","Vagus nerve"], correct: 1 },
+  { q: "Which part of the nephron filters blood?", a: ["Loop of Henle","Collecting duct","Glomerulus","Proximal tubule"], correct: 2 },
+  { q: "Tendons connect:", a: ["Bone to bone","Muscle to muscle","Muscle to bone","Cartilage to bone"], correct: 2 },
+];
+
+const TIMER = 20;
+const COLORS = ['A','B','C','D'];
+const MAX_POINTS = 1000;
+
+// ── State ──
+let gameCode = Math.random().toString(36).substring(2,7).toUpperCase();
+let players = {}; // { id: { name, score, answered, answerTime } }
+let currentQ = 0;
+let timerInterval = null;
+let timeLeft = TIMER;
+let questionActive = false;
+let answerCounts = [0,0,0,0];
+let questions = [];
+
+// ── BroadcastChannel (same-origin communication host↔player tabs) ──
+const bc = new BroadcastChannel('anatomy_trivia_' + gameCode);
+
+function broadcast(msg) { bc.postMessage(msg); }
+
+bc.onmessage = (e) => {
+  const msg = e.data;
+  if (msg.type === 'join') {
+    if (players[msg.id]) return;
+    players[msg.id] = { name: msg.name, score: 0, answered: false, answerTime: null };
+    updateLobby();
+    broadcast({ type: 'joined', id: msg.id, name: msg.name, code: gameCode });
+  }
+  if (msg.type === 'answer' && questionActive) {
+    const p = players[msg.id];
+    if (!p || p.answered) return;
+    p.answered = true;
+    p.answerTime = msg.time;
+    p.lastAnswer = msg.answer;
+    answerCounts[msg.answer]++;
+    updateResponseBar();
+    // Award points
+    const elapsed = (Date.now() - questionStartTime) / 1000;
+    const bonus = Math.max(0, 1 - elapsed / TIMER);
+    const correct = msg.answer === questions[currentQ].correct;
+    const pts = correct ? Math.round(MAX_POINTS * (0.4 + 0.6 * bonus)) : 0;
+    p.score += pts;
+    broadcast({ type: 'answer_ack', id: msg.id, correct, pts, correctAnswer: questions[currentQ].correct });
+    // Check all answered
+    const total = Object.keys(players).length;
+    const done = Object.values(players).filter(p => p.answered).length;
+    if (done >= total) endQuestion();
+  }
+  if (msg.type === 'ping') {
+    broadcast({ type: 'pong', code: gameCode, players: Object.values(players).map(p=>p.name) });
+  }
+};
+
+let questionStartTime = 0;
+
+function updateLobby() {
+  const grid = document.getElementById('players-grid');
+  const count = document.getElementById('player-count');
+  const pArr = Object.values(players);
+  count.textContent = pArr.length;
+  grid.innerHTML = pArr.map(p=>`<div class="player-chip">${p.name}</div>`).join('');
+  document.getElementById('start-btn').disabled = pArr.length < 1;
+  if (pArr.length >= 1) document.getElementById('waiting-msg').textContent = 'Ready to start!';
+}
+
+function shuffle(arr) { return [...arr].sort(() => Math.random()-0.5); }
+
+function startGame() {
+  questions = shuffle(QUESTIONS).slice(0, 10);
+  currentQ = 0;
+  Object.values(players).forEach(p => { p.score = 0; });
+  show('question-screen');
+  showQuestion();
+}
+
+function showQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('q-counter').textContent = `Question ${currentQ+1} / ${questions.length}`;
+  document.getElementById('q-text').textContent = q.q;
+  answerCounts = [0,0,0,0];
+  Object.values(players).forEach(p => { p.answered = false; p.lastAnswer = null; p.answerTime = null; });
+
+  const grid = document.getElementById('answers-grid');
+  grid.innerHTML = q.a.map((ans, i) => `
+    <div class="answer-btn ${COLORS[i]}">
+      <span class="letter">${COLORS[i]}</span>${ans}
+      <span class="answer-count" id="cnt-${i}">0</span>
+    </div>
+  `).join('');
+
+  updateResponseBar();
+  broadcast({ type: 'question', qIndex: currentQ, q: q.q, answers: q.a, timer: TIMER });
+
+  timeLeft = TIMER;
+  questionActive = true;
+  questionStartTime = Date.now();
+  updateTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) endQuestion();
+  }, 1000);
+}
+
+function updateTimer() {
+  document.getElementById('timer-num').textContent = timeLeft;
+  const pct = timeLeft / TIMER;
+  const dashoffset = 220 * (1 - pct);
+  const circle = document.getElementById('timer-circle');
+  circle.style.strokeDashoffset = dashoffset;
+  circle.style.stroke = pct > 0.5 ? '#00e5ff' : pct > 0.25 ? '#ffb300' : '#ff4081';
+}
+
+function updateResponseBar() {
+  const total = Object.keys(players).length;
+  const done = Object.values(players).filter(p => p.answered).length;
+  const pct = total > 0 ? (done/total*100) : 0;
+  document.getElementById('response-bar').style.width = pct + '%';
+  document.getElementById('response-label').textContent = `${done} / ${total} answered`;
+  for (let i=0;i<4;i++) {
+    const el = document.getElementById('cnt-'+i);
+    if (el) el.textContent = answerCounts[i];
+  }
+}
+
+function endQuestion() {
+  if (!questionActive) return;
+  questionActive = false;
+  clearInterval(timerInterval);
+  timeLeft = 0;
+
+  // Reveal correct answer
+  const correct = questions[currentQ].correct;
+  const btns = document.querySelectorAll('.answer-btn');
+  btns.forEach((btn, i) => {
+    if (i === correct) btn.classList.add('correct');
+    else btn.classList.add('wrong');
+  });
+
+  broadcast({ type: 'reveal', correctAnswer: correct });
+  updateResponseBar();
+
+  setTimeout(() => showLeaderboard(), 2000);
+}
+
+function showLeaderboard() {
+  const sorted = Object.entries(players)
+    .map(([id, p]) => ({ id, ...p }))
+    .sort((a, b) => b.score - a.score);
+
+  const list = document.getElementById('lb-list');
+  list.innerHTML = sorted.map((p, i) => {
+    const correct = p.lastAnswer === questions[currentQ].correct;
+    const delta = correct ? '+' + (p.score > 0 ? '' : '0') : '';
+    return `
+      <div class="lb-row" style="animation-delay:${i*0.08}s">
+        <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+        <div class="lb-name">${p.name}</div>
+        <div class="lb-score">${p.score.toLocaleString()}</div>
+      </div>
+    `;
+  }).join('');
+
+  broadcast({ type: 'leaderboard', scores: sorted.map(p=>({name:p.name,score:p.score})) });
+  show('leaderboard-screen');
+
+  const isLast = currentQ >= questions.length - 1;
+  document.getElementById('next-btn').textContent = isLast ? 'See Final Results' : `Next Question →`;
+  document.getElementById('next-btn').onclick = isLast ? showGameOver : () => {
+    currentQ++;
+    show('question-screen');
+    showQuestion();
+  };
+}
+
+function showGameOver() {
+  const sorted = Object.entries(players)
+    .map(([id, p]) => ({ id, ...p }))
+    .sort((a, b) => b.score - a.score);
+
+  document.getElementById('winner-name').textContent = sorted[0]?.name || '—';
+  const list = document.getElementById('final-lb');
+  list.innerHTML = sorted.map((p, i) => `
+    <div class="lb-row" style="animation-delay:${i*0.1}s">
+      <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="lb-name">${p.name}</div>
+      <div class="lb-score">${p.score.toLocaleString()}</div>
+    </div>
+  `).join('');
+  broadcast({ type: 'gameover', scores: sorted.map(p=>({name:p.name,score:p.score})) });
+  show('gameover-screen');
+}
+
+function show(id) {
+  ['lobby','question-screen','leaderboard-screen','gameover-screen']
+    .forEach(s => document.getElementById(s).style.display = 'none');
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+}
+
+// ── Init ──
+document.getElementById('code-display').textContent = gameCode;
+// Show player file URL hint
+const base = window.location.href.replace('anatomy-trivia-host.html','anatomy-trivia-player.html');
+document.getElementById('join-url-display').textContent = base + ' — Code: ' + gameCode;
+document.getElementById('start-btn').onclick = startGame;
+document.getElementById('restart-btn').onclick = () => {
+  Object.values(players).forEach(p => p.score = 0);
+  show('lobby');
+  updateLobby();
+};
+</script>
+</body>
+</html>
